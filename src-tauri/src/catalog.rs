@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -86,6 +86,7 @@ impl Catalog {
     pub fn search(&self, prefix: &str) -> Vec<City> {
         let prefix = prefix.to_lowercase();
         let mut results: Vec<u64> = Vec::new();
+        let mut seen_ids = HashSet::new();
 
         // Create a stream for keys that start with the prefix
         let mut stream = self.index.range().ge(&prefix).into_stream();
@@ -93,10 +94,13 @@ impl Catalog {
         while let Some((key, value)) = stream.next() {
             let key = String::from_utf8_lossy(&key);
             if key.starts_with(&prefix) {
-                results.push(value);
-                // Limit results to avoid overwhelming the user
-                if results.len() >= 100 {
-                    break;
+                if seen_ids.insert(value) {
+                    results.push(value);
+
+                    // Limit results to avoid overwhelming the user
+                    if results.len() >= 100 {
+                        break;
+                    }
                 }
             } else {
                 // Since the FST is sorted, we can break early when we pass the prefix
