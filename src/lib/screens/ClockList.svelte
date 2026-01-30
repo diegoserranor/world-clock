@@ -9,6 +9,7 @@
     let loaded = $state(false);
     let mode = $state<"list" | "edit">("list");
     let now = $state(new Date());
+    let draggingId = $state<string | null>(null);
 
     const add = () => {
         setScreen("clock-add");
@@ -47,7 +48,8 @@
     });
 
     const withTime = $derived.by(() => {
-        return clocks.map((clock) => {
+        const ordered = [...clocks].sort((a, b) => a.order - b.order);
+        return ordered.map((clock) => {
             const formatted = formatTime12h(clock.timezone, now).split(" ", 2);
             const time = formatted[0];
             const meridian = formatted[1] ?? "";
@@ -58,6 +60,66 @@
             };
         });
     });
+
+    const startDrag = (event: DragEvent, clockId: string) => {
+        draggingId = clockId;
+        if (event.dataTransfer) {
+            event.dataTransfer.setData("text/plain", clockId);
+            event.dataTransfer.effectAllowed = "move";
+            if (event.currentTarget instanceof HTMLElement) {
+                event.dataTransfer.setDragImage(
+                    event.currentTarget,
+                    event.currentTarget.offsetWidth / 2,
+                    event.currentTarget.offsetHeight / 2
+                );
+            }
+        }
+    };
+
+    const clearDrag = () => {
+        draggingId = null;
+    };
+
+    const allowDrop = (event: DragEvent) => {
+        event.preventDefault();
+        if (event.dataTransfer) {
+            event.dataTransfer.dropEffect = "move";
+        }
+    };
+
+    const dropOn = async (event: DragEvent, targetId: string) => {
+        event.preventDefault();
+        const draggedId =
+            draggingId ||
+            event.dataTransfer?.getData("text/plain") ||
+            null;
+        if (!draggedId || draggedId === targetId) {
+            return;
+        }
+        const current = [...clocks].sort((a, b) => a.order - b.order);
+        const fromIndex = current.findIndex((clock) => clock.id === draggedId);
+        const toIndex = current.findIndex((clock) => clock.id === targetId);
+        if (fromIndex === -1 || toIndex === -1) {
+            return;
+        }
+        const [moved] = current.splice(fromIndex, 1);
+        current.splice(toIndex, 0, moved);
+        const updated = current.map((clock, index) => ({
+            ...clock,
+            order: index,
+        }));
+        clocks = updated;
+        try {
+            const persisted = await invoke<Clock[]>("reorder_clocks", {
+                order: updated.map((clock) => clock.id),
+            });
+            clocks = persisted;
+        } catch (error) {
+            console.error("Failed to reorder clocks", error);
+        } finally {
+            clearDrag();
+        }
+    };
 </script>
 
 {#if !loaded}
@@ -88,6 +150,13 @@
     {#each withTime as clock (clock.id)}
         <div
             class="flex flex-row items-center justify-between w-full min-h-20 px-0 py-4 border-b border-gray-500 border-solid last-of-type:border-0"
+            ondragover={allowDrop}
+            ondrop={(event) => dropOn(event, clock.id)}
+            role="listitem"
+            draggable="true"
+            ondragstart={(event) => startDrag(event, clock.id)}
+            ondragend={clearDrag}
+            class:opacity-60={draggingId === clock.id}
         >
             <div class="flex flex-col justify-evenly h-full">
                 <div>
@@ -99,9 +168,7 @@
             </div>
             <div class="flex flex-row items-baseline h-full justify-end gap-3">
                 <button onclick={() => remove(clock.id)}>Delete</button>
-                <button onclick={() => console.log("drag is pending")}
-                    >Drag</button
-                >
+                <button>Drag</button>
             </div>
         </div>
     {/each}
