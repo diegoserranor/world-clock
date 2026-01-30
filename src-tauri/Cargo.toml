@@ -1,5 +1,5 @@
 [package]
-name = "world-clock"
+name = "elsewhere"
 version = "0.1.0"
 description = "App that lets you manage a list of clocks for cities around the world"
 authors = ["you"]
@@ -23,4 +23,3 @@ tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 fst = "0.4.7"
-

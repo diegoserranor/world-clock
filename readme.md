@@ -1,4 +1,4 @@
-# world clock
+# elsewhere
 App that lets you manage your own list of clocks for cities around the world
 - Core services written in Rust.
 - Tauri state management and commands to retrieve and save data.
@@ -9,4 +9,3 @@ App that lets you manage your own list of clocks for cities around the world
 
 ## Develop
 Run the program from the root of the repo with `pnpm tauri dev`. This will run both the backend and the frontend in development mode, and will restart when it detects changes.
-
