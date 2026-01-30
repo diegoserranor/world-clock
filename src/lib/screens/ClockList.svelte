@@ -19,6 +19,18 @@
     const done = () => {
         mode = "list";
     };
+    const remove = async (clockId: string) => {
+        try {
+            const removed = await invoke<boolean>("delete_clock", {
+                clock_id: clockId,
+            });
+            if (removed) {
+                clocks = clocks.filter((clock) => clock.id !== clockId);
+            }
+        } catch (error) {
+            console.error("Failed to delete clock", error);
+        }
+    };
 
     onMount(() => {
         void (async () => {
@@ -79,9 +91,7 @@
         >
             <div class="flex flex-col justify-evenly h-full">
                 <div>
-                    <button onclick={() => console.log("delete is pending")}
-                        >Delete</button
-                    >
+                    <button onclick={() => remove(clock.id)}>Delete</button>
                     <div>
                         <p class="text-sm">{clock.timezone}</p>
                         <h2 class="text-4xl">{clock.city_name}</h2>
