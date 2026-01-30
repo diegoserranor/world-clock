@@ -5,15 +5,15 @@ use std::io::{BufReader, BufWriter};
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-const CLOCKS_FILE: &str = "clocks.json";
-
-pub fn init() -> Result<Vec<Clock>, Box<dyn Error>> {
-    let data_path = Path::new(CLOCKS_FILE);
-    if !data_path.exists() {
-        fs::write(data_path, "[]")?;
+pub fn init(path: &Path) -> Result<Vec<Clock>, Box<dyn Error>> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    if !path.exists() {
+        fs::write(path, "[]")?;
         return Ok(Vec::new());
     }
-    let file = File::open(CLOCKS_FILE)?;
+    let file = File::open(path)?;
     let reader = BufReader::new(file);
     let mut clocks: Vec<Clock> = serde_json::from_reader(reader)?;
     clocks.sort_by_key(|clock| clock.order);
@@ -26,16 +26,20 @@ pub fn init() -> Result<Vec<Clock>, Box<dyn Error>> {
         }
     }
     if dirty {
-        save(&clocks)?;
+        save(path, &clocks)?;
     }
     Ok(clocks)
 }
 
-pub fn save(clocks: &Vec<Clock>) -> Result<(), Box<dyn Error>> {
+pub fn save(path: &Path, clocks: &Vec<Clock>) -> Result<(), Box<dyn Error>> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
     let file = OpenOptions::new()
         .write(true)
         .truncate(true)
-        .open(CLOCKS_FILE)?;
+        .create(true)
+        .open(path)?;
     let writer = BufWriter::new(file);
     serde_json::to_writer_pretty(writer, clocks)?;
     Ok(())

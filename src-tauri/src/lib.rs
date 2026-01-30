@@ -1,6 +1,7 @@
 mod catalog;
 mod clocks;
 
+use std::path::PathBuf;
 use std::sync::RwLock;
 use tauri::{Manager, State};
 
@@ -9,6 +10,7 @@ use tauri::{Manager, State};
 pub struct AppState {
     pub catalog: catalog::Catalog,
     pub clocks: RwLock<Vec<clocks::Clock>>,
+    pub clocks_path: PathBuf,
 }
 
 // ---- commands ----
@@ -35,7 +37,8 @@ fn add_clock(
     let persisted = clocks.clone();
     drop(clocks);
 
-    clocks::save(&persisted).map_err(|e| format!("Failed to save clocks: {}", e))?;
+    clocks::save(&state.clocks_path, &persisted)
+        .map_err(|e| format!("Failed to save clocks: {}", e))?;
     Ok(())
 }
 
@@ -50,7 +53,8 @@ fn delete_clock(state: State<'_, AppState>, clock_id: String) -> Result<bool, St
         }
         let persisted = clocks.clone();
         drop(clocks);
-        clocks::save(&persisted).map_err(|e| format!("Failed to save updated clocks: {}", e))?;
+        clocks::save(&state.clocks_path, &persisted)
+            .map_err(|e| format!("Failed to save updated clocks: {}", e))?;
         Ok(true)
     } else {
         Ok(false)
@@ -83,7 +87,8 @@ fn reorder_clocks(state: State<'_, AppState>, order: Vec<String>) -> Result<Vec<
     let persisted = reordered.clone();
     *clocks = reordered;
     drop(clocks);
-    clocks::save(&persisted).map_err(|e| format!("Failed to save reordered clocks: {}", e))?;
+    clocks::save(&state.clocks_path, &persisted)
+        .map_err(|e| format!("Failed to save reordered clocks: {}", e))?;
     Ok(persisted)
 }
 
@@ -105,14 +110,17 @@ fn get_city_by_id(state: State<'_, AppState>, id: u64) -> Result<catalog::City, 
 /// Run the Tauri app
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let catalog = catalog::init().expect("failed to init catalog");
-    let clocks = clocks::init().expect("failed to init clocks");
-    let app_state = AppState {
-        catalog,
-        clocks: RwLock::new(clocks),
-    };
     tauri::Builder::default()
         .setup(|app| {
+            let catalog = catalog::init().expect("failed to init catalog");
+            let data_dir = app.path().app_data_dir()?;
+            let clocks_path = data_dir.join("clocks.json");
+            let clocks = clocks::init(&clocks_path).expect("failed to init clocks");
+            let app_state = AppState {
+                catalog,
+                clocks: RwLock::new(clocks),
+                clocks_path,
+            };
             app.manage(app_state);
             Ok(())
         })
