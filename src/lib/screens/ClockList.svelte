@@ -87,18 +87,18 @@
     </div>
     {#each withTime as clock (clock.id)}
         <div
-            class="flex flex-row items-center justify-between w-full h-20 px-0 py-4 border-b border-gray-500 border-solid last-of-type:border-0"
+            class="flex flex-row items-center justify-between w-full min-h-20 px-0 py-4 border-b border-gray-500 border-solid last-of-type:border-0"
         >
             <div class="flex flex-col justify-evenly h-full">
                 <div>
-                    <button onclick={() => remove(clock.id)}>Delete</button>
                     <div>
                         <p class="text-sm">{clock.timezone}</p>
                         <h2 class="text-4xl">{clock.city_name}</h2>
                     </div>
                 </div>
             </div>
-            <div class="flex flex-row items-baseline h-full">
+            <div class="flex flex-row items-baseline h-full justify-end gap-3">
+                <button onclick={() => remove(clock.id)}>Delete</button>
                 <button onclick={() => console.log("drag is pending")}
                     >Drag</button
                 >
@@ -122,7 +122,7 @@
     </div>
     {#each withTime as clock (clock.id)}
         <div
-            class="flex flex-row items-center justify-between w-full h-20 px-0 py-4 border-b border-gray-500 border-solid last-of-type:border-0"
+            class="flex flex-row items-center justify-between w-full min-h-20 px-0 py-4 border-b border-gray-500 border-solid last-of-type:border-0"
         >
             <div class="flex flex-col justify-evenly h-full">
                 <p class="text-sm">{clock.timezone}</p>
